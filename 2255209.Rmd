@@ -1,0 +1,505 @@
+---
+title: "CS5801 Coursework Template Proforma"
+author: "2255209"
+date: "`r format(Sys.time(), '%d %B, %Y')`"
+output:
+  pdf_document: default
+  html_notebook: default
+version: 1
+---
+
+# 0. Instructions 
+
+*1. Remove the (italicised) guidance text but keep the section headings.*  
+*2. Add as many chunks of R code as required.*  
+*3. Where relevant summarise your answer to a section at the top of the section then add descriptions of your analysis plans and explanations of your code and findings. Please be detailed and where you have made choices explain the rationale for them. Avoid including any generic definitions.*  
+*4. Write your report using RMarkdown.  For guidance see a [helpful blog](https://www.dataquest.io/blog/r-markdown-guide-cheatsheet/#tve-jump-17333da0719) or use the R Markdown cheatsheet which can be accessed from within RStudio by selecting `Help > Cheatsheets > R Markdown Cheat Sheet`.*  
+*5. Your report should be clearly and professionally presented with appropriate use of cited external sources You report should respect the word counts in each section. (5 marks)*  
+*6. It should also be easy to understand, with well-documented code following the principles of literate programming. (5 marks)*
+
+
+```{r}
+# Add code here to load all the required libraries with `library()`.  
+# Do not include any `install.package()` for any required packages in this rmd file.
+library(validate)
+library(dplyr)
+library(ggplot2)
+```
+
+
+# 1. Organise and clean the data
+
+## 1.1 Subset the data into the specific dataset allocated
+ 
+*A description of the data set provided, its contents and which subset you should select is documented in the assessment brief at CS5801-Assessment Brief Template 2023-24.pdf*  
+
+*Use R code to correctly select the subset of data allocated. (5 marks)*  
+
+```{r}
+# Only change the value for SID 
+# Assign your student id into the variable SID, for example:
+SID <- 2255209                 # This is an example, replace 2101234 with your actual ID
+SIDoffset <- (SID %% 50) + 1    # Your SID mod 50 + 1
+
+load("car-analysis-data.Rda")
+# Now subset the car data set
+# Pick every 50th observation starting from your offset
+# Put into your data frame named mydf (you can rename it)
+mydf <- cars.analysis[seq(from=SIDoffset,to=nrow(cars.analysis),by=50),]
+```
+
+
+## 1.2 Data quality analysis plan
+
+
+For data quality checking following functions will be used:
+
+ summary() - it shows summary statistics of data
+
+ str() - to see the structure of data set
+
+ table() - for getting frequency of unique values, and for only categorical variables
+
+ colSums(is.na()) - to know the all NA values in data set
+ 
+ 
+ 
+ 
+1
+```{r}
+str <- str(mydf)
+```
+
+2
+```{r}
+summary<-summary(mydf)
+summary
+```
+
+3
+```{r}
+na_values <- colSums(is.na(mydf))
+na_values
+```
+
+4
+```{r}
+brand_tab   <- table(mydf$brand)
+brand_tab
+
+engine_tab  <- table(mydf$engine_size)
+engine_tab 
+
+transmission_tab <- table(mydf$automatic_transmission)
+transmission_tab
+
+fuel_tab  <- table(mydf$fuel)
+fuel_tab
+
+drive_tab <- table(mydf$drivetrain)
+drive_tab
+
+damaged_tab <- table(mydf$damaged)
+damaged_tab
+
+first_owner_tab <- table(mydf$first_owner)
+first_owner_tab
+
+navigation_tab <- table(mydf$navigation_system)
+navigation_tab
+
+bluetooth_tab <- table(mydf$bluetooth)
+bluetooth_tab
+
+seating_tab <- table(mydf$third_row_seating)
+seating_tab
+
+seats_tab <- table(mydf$heated_seats)
+seats_tab
+```
+
+
+
+
+
+
+*Provide a description of a comprehensive plan to assess the quality of this data. Include all variables/columns (5 marks) from the data set. (Max 200 words)*
+
+## 1.3 Data quality analysis findings
+
+-str: From the structure we can see that, there is only two types of variables 'numerical', and 'character',
+      Data set contains 16 columns and 410 rows
+      categorical variables are: brand, engine_size, automatic_transmission, fuel, 
+      drivetrain, damaged, first_owner, navigation_system, bluetooth, 
+      third_row_seating, heated_seats
+      numericals are: year, mileage, min_mpg, max_mpg and price.
+      
+      
+-summary: Sumary of data set,  key findings: 
+          1. Production year of cars starts from 1964 till 2023.
+           But mean is 2017 and 1st quantile is 2015,  it means there might be a small 
+           amount of classic cars whichdeveloped after 1964.
+   
+          2. In Engine size column max size shows 390.00, it is an error.
+           And 19 NA values in this variable.
+
+          3. 'max_mpg' shows -30.00 in Minimum, an error. And per 49 NA values 
+           in 'min_mpg' and 'max_mpg'.
+
+          4. 'damaged' have 2 and 'first_owner' have 5 NA values
+
+
+-is.na: Number of NA values in data set overall: 124 
+
+
+-table: Here all categorical variables are checked to see the unique 
+        values and divided to variables
+        Brand: 25 types of car brands,
+        Engine: 35 different types of engine sizes
+        Automatic transmission: 2 types 1 and 0
+        Fuel type: 6 types,and 1 unknown
+        Drivetrain : 3 types, and 1 unknown
+        Damaged: 2 types 1 and 0
+        First owner: 2 types 1 and 0
+        Damaged: 2 types 1 and 0
+        Bluetooth: 2 types 1 and 0
+        Third row seating: 2 types 1 and 0
+        Heated seats: 2 types 1 and 0
+
+
+Next, 
+      -All NA values will be checked and will be filled with data or delated,
+      -All unreal values will be deleted, value with minus or over 10L engine sizes
+      -All 'unknown' values will be finded and deleted
+
+*Provide a full implementation of your data quality plan from (1.2) Include all variables/columns from the data set and  (5 marks).(Max 100 words)*
+
+ 
+## 1.4 Data cleaning  
+
+1
+```{r}
+mydf %>% filter(mydf$engine_size == 390)
+```
+Found engine_size=390
+
+
+2
+```{r}
+which(mydf$engine_size == 390)
+```
+Found id of this row
+
+
+
+3
+```{r}
+mydf <- mydf %>% filter(!row_number() %in% c(104))
+```
+Deleted the whole row with engine_size=390, and it contained a year 1964 which was inappropriate value
+
+
+
+4
+```{r}
+na_values <- mydf[apply(is.na(mydf), 1, any), ]
+```
+Filtering all NA values to check them
+
+
+
+5
+my_data_frame$Age[my_data_frame$Name == "Bob"] <- 35
+```{r}
+mydf$max_mpg[mydf$brand == 'Volkswagen'] <- 30
+```
+-30 value replaced with 30
+
+
+
+
+6
+```{r}
+mydf$brand <- as.factor(mydf$brand)
+mydf$fuel <- as.factor(mydf$fuel)
+mydf$drivetrain <- as.factor(mydf$drivetrain)
+
+```
+Changing all character values to factor
+
+
+ 
+*List and explain all the data quality issues found in 1.3 (5 marks)  NB even if no data quality issues are identified you should still check and report. Justify and document the way you have addressed each of the issues found (if any) (5 marks). (Max 200 words)*
+
+
+# 2. Exploratory Data Analysis (EDA)
+
+## 2.1 EDA plan
+
+
+
+
+*Outline a suitable plan to explore, describe and visualise your data. This plan should include appropriate summary statistics (uni- and multi-variate) and visualisations. The plan should also outline how you plan to explore the data with respect to the dependent variables  (5 marks) (Max 200 words)*  
+
+## 2.2 EDA execution   
+
+1
+```{r}
+hist(mydf$year, col = 'skyblue', main = 'Histogram of production year of cars')
+```
+We can see that most of the cars in the data is produced after 2010
+
+
+
+
+
+
+
+2
+```{r}
+hist(mydf$mileage, col = 'purple', main = 'Histogram of mileage of cars')
+```
+
+
+
+
+
+3
+```{r}
+hist(mydf$price, col = 'red', main = 'Histogram of price')
+```
+
+
+
+
+4
+```{r}
+hist(mydf$engine_size, col = 'skyblue', main = 'Histogram of engine size')
+```
+
+
+
+
+5
+```{r}
+mean(mydf$year)
+
+mean(mydf$mileage)
+
+mean(mydf$price)
+```
+
+
+
+
+6
+```{r}
+ggplot(mydf, aes(x = mydf$engine_size)) +
+  geom_histogram(aes(y = after_stat(density)), binwidth = 1, colour = 'black', fill = 'grey') +
+  geom_density(alpha = 0.5, fill = 'blue') +
+  xlab('Ebgine size') +
+  ggtitle('Histogram and Density Plot of Engine size')
+
+```
+
+
+
+
+
+
+```{r}
+sd(mydf$year)
+sd(mydf$mileage)
+sd(mydf$price)
+```
+
+
+
+
+
+```{r}
+t.test(mydf$year, mydf$mileage)
+```
+p value is low, year and mileage is not related
+
+
+
+
+
+```{r}
+t.test(mydf$price, mydf$year)
+```
+p value is low, price and year is not related
+
+
+
+
+
+```{r}
+boxplot(mydf$brand ~ mydf$fuel)
+
+```
+the most popular fuel types are electric and Hybrid
+
+
+
+
+```{r}
+
+boxplot(mydf$brand ~ mydf$first_owner)
+```
+
+
+
+
+```{r}
+cor.test(mydf$mileage, mydf$price)
+```
+Here we can see that price and mileage is not correlated
+
+
+
+
+
+
+
+```{r}
+ggplot(data=mydf, aes(x = price, y = mileage)) + geom_point() + theme_classic() + ggtitle(("Scatterplot for price and mileage "))
+
+
+```
+Here we can see that data normally distributed between price and mileage
+
+
+
+```{r}
+ggplot(data=mydf, aes(x = price, y = brand)) + geom_point() + theme_classic() + ggtitle(("Scatterplot for price and mileage "))
+```
+
+
+
+
+
+```{r}
+
+
+price.lm <- lm(mydf$mileage~mydf$price, data=mydf)
+price.lm
+```
+
+
+
+```{r}
+summary(price.lm)
+```
+
+
+
+
+
+```{r}
+plot(price.lm)
+```
+
+
+
+```{r}
+price.lm2<-lm(mydf$mileage~mydf$price+ I(mydf$price^2))
+```
+```{r}
+plot(price.lm2)
+```
+
+
+*Undertake the data exploration plan outlined in 2.1 (5 marks) (Max 100 words)*
+
+## 2.3 EDA summary of results
+
+```{r}
+
+ggplot(data = mydf, aes(mydf$price)) +
+  geom_histogram(aes(y =..density..), fill = "orange") +
+  geom_density()
+```
+
+
+
+*Provide a concise summary of your findings (5 marks) (Max 300 words)*
+
+## 2.4 Additional insights and issues
+
+*Highlight potential further issues or insights uncovered in 2.2.  This might include follow up to findings from your initial EDA.  We accept that the boundary between 2.2 and 2.3 is somewhat arbitrary so use your judgement and maximise good structure and readability. (5 marks) (Max 200 words)*
+
+
+# 3. Modelling
+
+## 3.1 Explain your analysis plan
+
+*The aim of the analysis is to model used car prices. Outline and justify an analysis plan to address the aim that incorporates/references any findings from the data cleaning (1.4) and EDA (2.3, 2.4)  (5 marks). (Max 200 words)*
+
+## 3.2 Build a model for car price
+*Use R to build a suitable model to model used car prices on your data (dependent variable is price) (5 marks). (Max 100 words)*  
+*NB Submissions where suitable models do not have good fit due to the nature of the data will not be penalised.*  
+
+
+
+```{r}
+model1 <- lm(mydf$price ~ mydf$brand + mydf$mileage )
+```
+```{r}
+summary(model1)
+```
+
+
+
+```{r}
+model <- lm(mydf$price ~ mydf$mileage)
+```
+```{r}
+summary(model)
+```
+```{r}
+model2 <- lm(mydf$price ~ mydf$mileage + mydf$fuel)
+
+
+```
+
+```{r}
+plot(model2)
+```
+From models we can see that there is no relationship in car price and mileage of it.
+
+
+
+
+## 3.3 Critique model using relevant diagnostics
+
+*Offer an interpretation of the model, goodness of fit and graphical diagnostics (5 marks) for the model built in 3.2. Explain any potential weaknesses (5 marks). (Max 200 words)*
+
+
+## 3.4 Suggest and implement improvements to your model
+
+*Based on the findings in 3.2 and 3.3 articulate and include one possible alternative approach to address the model weaknesses articulated in 3.3. Explain which model (from the ones in 3.2 and 3.4) you propose and why (5 marks). (Max 200 words)*
+
+
+# 4. Modelling another dependent variable
+
+## 4.1 Model the likelihood of a car being sold by the first owner (using the first_owner variable provided).
+
+
+
+```{r}
+first_0 <- mydf[mydf$first_owner == 1, ]
+
+
+```
+
+*The aim of the analysis is to model whether a car is being sold by the first owner or not. (i.e., involving the binary target attribute).* 
+*Provide a plan of analysis based on relevant EDA for this attribute. Execute the plan and address any weaknesses of the model and explore methods to improve it (10 marks).* 
+*Justify and propose one model. Describe, explain and critique it (10 marks).*
+*(Max 500 words)*
+*NB Submissions where suitable models do not have good fit due to the nature of the data will not be penalised.* 
+
+# References  
+
+*Add any references here including references to use of GenAI. NB You can either do this manually or automatically with a `.bib` file (which then must be submitted along with your `.Rmd` file).  See the RMarkdown [documentation](https://bookdown.org/yihui/rmarkdown-cookbook/bibliography.html) for guidance.*    
